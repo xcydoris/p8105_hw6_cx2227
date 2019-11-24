@@ -1,0 +1,53 @@
+---
+title: "p8105_hw6_cx2227"
+author: "Chuyue Xiang"
+date: "11/21/2019"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(modelr)
+library(mgcv)
+```
+
+## Problem 1
+
+```{r}
+birthweight = read_csv("./data/birthweight.csv")
+
+str(birthweight)
+
+birthweight = birthweight %>% 
+mutate(
+  babysex = factor(babysex),
+    frace = factor(frace),
+    mrace = factor(mrace),
+    malform = factor(malform)
+  )
+
+options(scipen=999)
+fit = lm(bwt ~ blength + delwt + gaweeks + malform + menarche + momage + pnumlbw + ppbmi + ppwt + wtgain,
+         data = birthweight)
+fit %>% broom::tidy()
+
+birthweight %>% 
+  add_predictions(fit) %>% 
+  add_residuals(fit) %>%
+  ggplot(aes(x = resid, y = pred)) + geom_violin() +
+  labs(
+    x = "Residuals",
+    y = "Predictions"
+  )
+```
+
+ - This model is built by selecting some factors I thought would be attrbutng to the weight of the baby, for example: the length of the baby, mother’s pre-pregnancy BMI, mother’s age at menarche, etc...
+
+ - However, through the chart, there is no clear interaction, so this model proposed is not effective.
+ 
+```{r}
+
+```
+ 
