@@ -15,7 +15,7 @@ library(mgcv)
 
 ## Problem 1
 
-```{r}
+```{r, warning=FALSE}
 birthweight = read_csv("./data/birthweight.csv")
 
 str(birthweight)
@@ -41,13 +41,91 @@ birthweight %>%
     x = "Residuals",
     y = "Predictions"
   )
+
+#This model is built by selecting some factors I thought would be attrbutng to the weight of the baby, for example: the length of the baby, mother’s pre-pregnancy BMI, mother’s age at menarche, etc...
+
+#However, through the chart, there is no clear interaction, so this model proposed is not effective.
+
+fit2 = lm(bwt ~ blength + gaweeks, data = birthweight) 
+fit2 %>% broom::tidy()
+birthweight %>% 
+  modelr::add_residuals(fit2) %>% 
+  modelr::add_predictions(fit2) %>% 
+  ggplot(aes(x = resid, y = pred)) + 
+  geom_violin()+
+  labs(
+    x = "Residuals",
+    y = "Predictions"
+  )
+
+fit3 = lm(bwt ~ bhead + blength + babysex + bhead*babysex + bhead*blength + blength*babysex + bhead*blength*babysex, data = birthweight)
+fit3 %>% broom::tidy()
+birthweight %>% 
+  modelr::add_residuals(fit3) %>% 
+  modelr::add_predictions(fit3) %>% 
+  ggplot(aes(x = resid, y = pred)) + 
+  geom_violin()+
+  labs(
+    x = "Residuals",
+    y = "Predictions"
+  )
+
+# compare three models
+
+cv_birthweight = crossv_mc(birthweight, 100)
+  
+
+cv_birthweight = cv_birthweight %>% 
+  mutate(
+    train = map(train, as_tibble),
+    test =  map(test, as_tibble))
+cv_birthweight = 
+  cv_birthweight %>% 
+  mutate(linearmodel1  = map(train, ~lm(bwt ~ blength + delwt + gaweeks + malform + menarche + momage + pnumlbw + ppbmi + ppwt + wtgain, data = .x)),
+         linearmodel2  = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
+         linearmodel3  = map(train, ~lm(bwt ~ bhead + blength + babysex + bhead*babysex + bhead*blength + blength*babysex + bhead*blength*babysex, data = .x))) %>% 
+
+  mutate(rmse_linear_1 = map2_dbl(linearmodel1, test, ~rmse(model = .x, data = .y)),
+         rmse_linear_2 = map2_dbl(linearmodel2, test, ~rmse(model = .x, data = .y)),
+         rmse_linear_3 = map2_dbl(linearmodel3, test, ~rmse(model = .x, data = .y)))
+
+cv_birthweight %>% 
+  select(starts_with("rmse")) %>% 
+  pivot_longer(
+    everything(),
+    names_to = "model", 
+    values_to = "rmse",
+    names_prefix = "rmse_") %>% 
+  mutate(model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) + geom_violin()
+```
+
 ```
 
  - This model is built by selecting some factors I thought would be attrbutng to the weight of the baby, for example: the length of the baby, mother’s pre-pregnancy BMI, mother’s age at menarche, etc...
 
  - However, through the chart, there is no clear interaction, so this model proposed is not effective.
  
-```{r}
 
+
+
+
+## Problem 2
+
+data import
+
+```{r}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
 ```
+
  
